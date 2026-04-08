@@ -1,0 +1,12 @@
+ALTERNATIVNI VIRI PODATKOV - Cene goriv v Sloveniji
+====================================================
+
+CENE GORIV:
+https://goriva.si/                                                          - Uradni vladni portal z aktualnimi cenami goriv za vse bencinske servise v Sloveniji (vir naših API podatkov)
+https://www.globalpetrolprices.com/Slovenia/gasoline_prices/                 - Tedensko povprečje cen goriv za Slovenijo, uporabno za primerjave na ravni države
+https://www.fuel-prices.eu/Slovenia/                                        - EU sledilnik cen goriv s slovenskimi zgodovinskimi podatki od leta 2005
+https://github.com/stefanb/goriva-data                                     - Odprta podatkovna zbirka, ki periodično prepiše podatke iz goriva.si API (zgodovina samo v git commitih, ni ločenih zgodovinskih datotek)
+
+POŠTNE ŠTEVILKE (preslikava zip_code iz postaj v mesto/regijo):
+https://www.posta.si/seznam-post                                           - Uradni seznam pošt s poštnimi številkami in imeni krajev
+https://sl.wikipedia.org/wiki/Seznam_poštnih_številk_v_Sloveniji           - Celoten seznam poštnih številk v Sloveniji na Wikipediji
