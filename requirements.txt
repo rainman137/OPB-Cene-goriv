@@ -1,0 +1,7 @@
+psycopg2-binary
+flask
+flask-cors
+requests
+beautifulsoup4
+lxml
+python-dotenv
