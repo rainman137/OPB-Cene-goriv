@@ -75,7 +75,6 @@ class VrstaGorivaRepo:
             return [VrstaGoriva(id_goriva=row[0], naziv=row[1], enota=row[2]) for row in cur.fetchall()]
 
     def vrni_vse_za_prikaz(self) -> list[dict]:
-        # Vrste goriva za prikaz na spletni strani (vključno s kodo in opisom).
         with self.conn.cursor() as cur:
             cur.execute("SELECT koda, naziv, opis, enota FROM vrsta_goriva ORDER BY id_goriva")
             return [
@@ -100,7 +99,7 @@ class CrpalkaRepo:
             self.conn.commit()
             return c
         except Exception as e:
-            self.conn.rollback()  # reset broken transaction
+            self.conn.rollback()  
             raise e
 
     def vrni_vse(self) -> list[Crpalka]:
@@ -121,7 +120,6 @@ class CrpalkaRepo:
             raise e
 
     def vrni_vse_za_prikaz(self) -> list[dict]:
-        # Črpalke za prikaz: namesto ID-jev pokažemo ime kraja in naziv ponudnika.
         with self.conn.cursor() as cur:
             cur.execute("""
                 SELECT c.naziv, c.naslov, k.ime AS kraj, k.postna_stevilka,
@@ -167,8 +165,6 @@ class CenaRepo:
             ) for row in cur.fetchall()]
 
     def vrni_zadnje_cene_za_prikaz(self) -> list[dict]:
-        # Zadnja (najnovejša) cena za vsako kombinacijo črpalka + gorivo,
-        # z nazivom črpalke in nazivom goriva za lepši prikaz.
         with self.conn.cursor() as cur:
             cur.execute("""
                 SELECT DISTINCT ON (ce.id_crpalke, ce.id_goriva)

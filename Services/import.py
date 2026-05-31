@@ -294,84 +294,73 @@ class UvozService:
         print(f"Črpalke obdelane: {uvozeno}, preskočene: {preskoceno}.")
 
     def uvozi_cene(self):
-        price_files = [
-            filename
-            for filename in os.listdir(DATA_DIR)
-            if filename.startswith("prices_") and filename.endswith(".csv")
-        ]
+        pot = os.path.join(DATA_DIR, "prices_2026-04-08.csv")
+        print(f"Uvažam cene iz {pot} ...")
 
-        print(f"Najdenih datotek s cenami: {len(price_files)}")
+        uvozeno = 0
+        preskoceno = 0
 
-        with self.conn.cursor() as cur:
-            for filename in sorted(price_files):
-                pot = os.path.join(DATA_DIR, filename)
-                uvozeno = 0
-                preskoceno = 0
+        with self.conn.cursor() as cur, open(pot, encoding="utf-8") as f:
+            reader = csv.DictReader(f)
 
-                print(f"Uvažam cene iz {filename} ...")
+            for row in reader:
+                try:
+                    cur.execute(
+                        """
+                        SELECT id_crpalke
+                        FROM crpalka
+                        WHERE zunanji_id = %s
+                        """,
+                        (int(row["station_id"]),),
+                    )
+                    crpalka = cur.fetchone()
 
-                with open(pot, encoding="utf-8") as f:
-                    reader = csv.DictReader(f)
+                    cur.execute(
+                        """
+                        SELECT id_goriva
+                        FROM vrsta_goriva
+                        WHERE koda = %s
+                        """,
+                        (row["fuel_code"],),
+                    )
+                    gorivo = cur.fetchone()
 
-                    for row in reader:
-                        try:
-                            cur.execute(
-                                """
-                                SELECT id_crpalke
-                                FROM crpalka
-                                WHERE zunanji_id = %s
-                                """,
-                                (int(row["station_id"]),),
-                            )
-                            crpalka = cur.fetchone()
+                    if crpalka is None or gorivo is None:
+                        preskoceno += 1
+                        continue
 
-                            cur.execute(
-                                """
-                                SELECT id_goriva
-                                FROM vrsta_goriva
-                                WHERE koda = %s
-                                """,
-                                (row["fuel_code"],),
-                            )
-                            gorivo = cur.fetchone()
+                    cur.execute(
+                        """
+                        INSERT INTO cena (
+                            id_crpalke,
+                            id_goriva,
+                            vrednost,
+                            valuta,
+                            datum_zajema
+                        )
+                        VALUES (%s, %s, %s, %s, %s)
+                        ON CONFLICT (id_crpalke, id_goriva, datum_zajema)
+                        DO UPDATE SET
+                            vrednost = EXCLUDED.vrednost,
+                            valuta = EXCLUDED.valuta
+                        """,
+                        (
+                            crpalka[0],
+                            gorivo[0],
+                            float(row["price_eur"]),
+                            "EUR",
+                            row["date"],
+                        ),
+                    )
 
-                            if crpalka is None or gorivo is None:
-                                preskoceno += 1
-                                continue
+                    uvozeno += 1
 
-                            cur.execute(
-                                """
-                                INSERT INTO cena (
-                                    id_crpalke,
-                                    id_goriva,
-                                    vrednost,
-                                    valuta,
-                                    datum_zajema
-                                )
-                                VALUES (%s, %s, %s, %s, %s)
-                                ON CONFLICT (id_crpalke, id_goriva, datum_zajema)
-                                DO UPDATE SET
-                                    vrednost = EXCLUDED.vrednost,
-                                    valuta = EXCLUDED.valuta
-                                """,
-                                (
-                                    crpalka[0],
-                                    gorivo[0],
-                                    float(row["price_eur"]),
-                                    "EUR",
-                                    row["date"],
-                                ),
-                            )
-
-                            uvozeno += 1
-
-                        except Exception as e:
-                            print(f"Napaka pri ceni {row}: {e}")
-                            preskoceno += 1
-
-                print(f"  Uvožene/posodobljene cene: {uvozeno}, preskočene: {preskoceno}")
+                except Exception as e:
+                    print(f"Napaka pri ceni {row}: {e}")
+                    preskoceno += 1
 
         self.conn.commit()
+        print(f"Uvožene/posodobljene cene: {uvozeno}, preskočene: {preskoceno}")
         print("Cene uvožene.")
 
     def uvozi_vse(self):
