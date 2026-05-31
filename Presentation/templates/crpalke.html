@@ -1,0 +1,31 @@
+{% extends "osnova.html" %}
+{% block naslov %}Črpalke{% endblock %}
+
+{% block vsebina %}
+<h2>Seznam vseh črpalk</h2>
+<br>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Naziv</th>
+            <th>Naslov</th>
+            <th>Kraj</th>
+            <th>Pošta</th>
+            <th>Ponudnik</th>
+            <th>Aktivna</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for c in crpalke %}
+        <tr>
+            <td>{{ c.naziv }}</td>
+            <td>{{ c.naslov }}</td>
+            <td>{{ c.kraj }}</td>
+            <td>{{ c.postna_stevilka }}</td>
+            <td>{{ c.ponudnik }}</td>
+            <td>{{ 'da' if c.aktivna else 'ne' }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

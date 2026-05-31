@@ -1,0 +1,29 @@
+{% extends "osnova.html" %}
+{% block naslov %}Cene{% endblock %}
+
+{% block vsebina %}
+<h2>Zadnje cene goriv</h2>
+<br>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Črpalka</th>
+            <th>Gorivo</th>
+            <th>Cena</th>
+            <th>Valuta</th>
+            <th>Datum zajema</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for cena in cene %}
+        <tr>
+            <td>{{ cena.crpalka }}</td>
+            <td>{{ cena.gorivo }}</td>
+            <td>{{ cena.vrednost }}</td>
+            <td>{{ cena.valuta }}</td>
+            <td>{{ cena.datum_zajema }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

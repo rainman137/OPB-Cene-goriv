@@ -1,0 +1,27 @@
+{% extends "osnova.html" %}
+{% block naslov %}Vrste goriva{% endblock %}
+
+{% block vsebina %}
+<h2>Seznam vrst goriva</h2>
+<br>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Koda</th>
+            <th>Naziv</th>
+            <th>Opis</th>
+            <th>Enota</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for g in vrste_goriva %}
+        <tr>
+            <td>{{ g.koda }}</td>
+            <td>{{ g.naziv }}</td>
+            <td>{{ g.opis }}</td>
+            <td>{{ g.enota }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
