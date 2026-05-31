@@ -17,6 +17,30 @@ def get_connection():
         password=os.getenv("DB_PASSWORD"),
     )
 
+def regija_iz_postne_stevilke(postna_stevilka):
+    if not postna_stevilka:
+        return "Neznana regija"
+
+    postna_stevilka = str(postna_stevilka).strip()
+
+    if not postna_stevilka:
+        return "Neznana regija"
+
+    prva_stevilka = postna_stevilka[0]
+
+    regije = {
+        "1": "Ljubljana",
+        "2": "Maribor",
+        "3": "Celje",
+        "4": "Kranj",
+        "5": "Nova Gorica",
+        "6": "Koper - Capodistria",
+        "8": "Novo Mesto",
+        "9": "Murska Sobota",
+    }
+
+    return regije.get(prva_stevilka, "Neznana regija")
+
 
 class UvozService:
     def __init__(self):
@@ -75,19 +99,106 @@ class UvozService:
         self.conn.commit()
         print("Vrste goriva uvožene.")
 
-    def pridobi_neznano_regijo(self, cur):
+    def uvozi_poste(self):
+        pot = os.path.join(DATA_DIR, "postne_stevilke.csv")
+        print(f"Uvažam pošte iz {pot} ...")
+
+        if not os.path.exists(pot):
+            print("Datoteka postne_stevilke.csv ne obstaja, preskakujem uvoz pošt.")
+            return
+
+        with self.conn.cursor() as cur:
+
+            with open(pot, encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+
+                for row in reader:
+                    postna_stevilka = row["postna_stevilka"].strip()
+                    ime_poste = row["ime_poste"].strip()
+                    ime_regije = regija_iz_postne_stevilke(postna_stevilka)
+
+                    cur.execute(
+                        """
+                        INSERT INTO regija (ime)
+                        VALUES (%s)
+                        ON CONFLICT (ime) DO NOTHING
+                        """,
+                        (ime_regije,),
+                    )
+
+                    cur.execute(
+                        """
+                        SELECT id_regije
+                        FROM regija
+                        WHERE ime = %s
+                        """,
+                        (ime_regije,),
+                    )
+
+                    id_regije = cur.fetchone()[0]
+
+                    cur.execute(
+                        """
+                        INSERT INTO kraj (ime, postna_stevilka, id_regije)
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (ime, postna_stevilka)
+                        DO UPDATE SET
+                            id_regije = EXCLUDED.id_regije
+                        """,
+                        (ime_poste, postna_stevilka, id_regije),
+                    )
+
+        self.conn.commit()
+        print("Pošte uvožene.")
+
+    
+
+    def pridobi_ali_ustvari_kraj(self, cur, zip_code):
+        ime_regije = regija_iz_postne_stevilke(zip_code)
+
         cur.execute(
             """
             INSERT INTO regija (ime)
-            VALUES ('Neznana regija')
+            VALUES (%s)
             ON CONFLICT (ime) DO NOTHING
-            """
+            """,
+            (ime_regije,),
         )
 
-        cur.execute("SELECT id_regije FROM regija WHERE ime = 'Neznana regija'")
-        return cur.fetchone()[0]
+        cur.execute(
+            """
+            SELECT id_regije
+            FROM regija
+            WHERE ime = %s
+            """,
+            (ime_regije,),
+        )
 
-    def pridobi_ali_ustvari_kraj(self, cur, zip_code, id_regije):
+        id_regije = cur.fetchone()[0]
+
+        if zip_code:
+            cur.execute(
+                """
+                SELECT id_kraja
+                FROM kraj
+                WHERE postna_stevilka = %s
+                """,
+                (zip_code,),
+            )
+
+            obstojeci = cur.fetchone()
+
+            if obstojeci:
+                cur.execute(
+                    """
+                    UPDATE kraj
+                    SET id_regije = %s
+                    WHERE id_kraja = %s
+                    """,
+                    (id_regije, obstojeci[0]),
+                )
+                return obstojeci[0]
+
         ime = f"Pošta {zip_code}" if zip_code else "Neznan kraj"
 
         cur.execute(
@@ -111,7 +222,6 @@ class UvozService:
         preskoceno = 0
 
         with self.conn.cursor() as cur, open(pot, encoding="utf-8") as f:
-            id_regije = self.pridobi_neznano_regijo(cur)
             reader = csv.DictReader(f)
 
             for row in reader:
@@ -119,7 +229,6 @@ class UvozService:
                     id_kraja = self.pridobi_ali_ustvari_kraj(
                         cur,
                         row.get("zip_code"),
-                        id_regije,
                     )
 
                     cur.execute(
@@ -269,6 +378,7 @@ class UvozService:
         print("=== Začetek uvoza podatkov ===")
         self.uvozi_ponudnike()
         self.uvozi_vrste_goriva()
+        self.uvozi_poste()
         self.uvozi_crpalke()
         self.uvozi_cene()
         print("=== Uvoz končan ===")
